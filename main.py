@@ -10,6 +10,9 @@ APP_PASSWORD = st.secrets["APP_PASSWORD"]
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
+# ============================
+# LOGIN
+# ============================
 if not st.session_state.authenticated:
     st.title("🔒 Accesso protetto")
     pwd = st.text_input("Inserisci la password", type="password")
@@ -41,8 +44,10 @@ except ImportError:
 def get_openai_client():
     return OpenAI(api_key=OPENAI_API_KEY)
 
-@st.cache_data(ttl=3600)
-def cached_serp(keyword, encoded_credentials, depth=5):
+# ============================
+# NIENTE CACHE per SERP e PARSING
+# ============================
+def fetch_serp(keyword, encoded_credentials, depth=5):
     url = "https://api.dataforseo.com/v3/serp/google/organic/live/advanced"
     headers = {"Authorization": f"Basic {encoded_credentials}", "Content-Type": "application/json"}
     payload = json.dumps([{
@@ -61,8 +66,7 @@ def cached_serp(keyword, encoded_credentials, depth=5):
             return [r for r in results if r["type"] == "organic"][:depth]
     return []
 
-@st.cache_data(ttl=3600)
-def cached_content_full(url, encoded_credentials):
+def fetch_content_full(url, encoded_credentials):
     api_url = "https://api.dataforseo.com/v3/on_page/content_parsing/live"
     headers = {"Authorization": f"Basic {encoded_credentials}", "Content-Type": "application/json"}
     payload = json.dumps([{
@@ -85,10 +89,10 @@ class LocalSEOPlanner:
         self.openai_client = get_openai_client()
 
     def get_serp_results(self, keyword):
-        return cached_serp(keyword, self.encoded_credentials, depth=5)
+        return fetch_serp(keyword, self.encoded_credentials, depth=5)
 
     def extract_text(self, url):
-        data = cached_content_full(url, self.encoded_credentials)
+        data = fetch_content_full(url, self.encoded_credentials)
         if not data or data.get("status_code") != 20000:
             return ""
         result = data.get("result", [])
@@ -198,12 +202,17 @@ with st.expander("ℹ️ Come funziona?"):
     Output finale: Excel (se disponibile) o CSV.
     """)
 
+# Pulsante opzionale per svuotare cache (non tocca l'autenticazione)
+if st.button("♻️ Svuota cache"):
+    st.cache_data.clear()
+    st.cache_resource.clear()
+    st.success("Cache svuotata. Le prossime generazioni useranno solo dati freschi.")
+
 with st.form("planner_form"):
     business = st.text_input("Nome azienda")
     sector = st.text_input("Settore")
     website = st.text_input("Sito web (es: https://www.sito.it)")
-    target_location = st.text_input("Località target (es: Milano, Bologna, ecc.)")  # <-- nuovo campo
-    
+    target_location = st.text_input("Località target (es: Milano, Bologna, ecc.)")
     topic_mode = st.selectbox("Argomenti", ["Singolo argomento", "Lista di argomenti"])
     topic_input = st.text_area("Inserisci argomento/i (uno per riga)")
     n_posts = st.number_input("Numero post per argomento", 1, 20, 3)
@@ -270,7 +279,6 @@ if submit:
         buffer = BytesIO()
         df.to_excel(buffer, index=False)
         buffer.seek(0)
-
         st.download_button(
             "⬇️ Scarica Excel",
             data=buffer,
