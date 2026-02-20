@@ -126,26 +126,47 @@ OUTPUT:
 
     def generate_posts(self, business, sector, topic, brief, summary, n_posts):
         prompt = f"""
-Sei un copywriter Local SEO esperto.
-Genera {n_posts} post per Google Business Profile.
-
-Azienda: {business}
-Settore: {sector}
-Argomento: {topic}
-Brief aggiuntivo: {brief}
-Informazioni di riferimento: {summary}
-
-Regole:
-- 80-120 parole
-- tono professionale
-- CTA locale soft (contattaci, chiama, ecc.)
-- nessuna frase generica
-
-Rispondi SOLO in JSON:
-{{
-  "posts": ["testo post 1", "testo post 2", ...]
-}}
-"""
+        Agisci come un copywriter senior specializzato in Local SEO e Google Business Profile.
+        
+        Obiettivo:
+        Generare {n_posts} post ottimizzati per Google Business Profile, pensati per aumentare visibilità locale e conversioni.
+        
+        Dati azienda:
+        - Nome attività: {business}
+        - Settore: {sector}
+        - Argomento del post: {topic}
+        - Brief aggiuntivo: {brief}
+        - Informazioni di riferimento: {summary}
+        
+        Linee guida obbligatorie:
+        - Lunghezza: minimo 80, massimo 120 parole
+        - Tono: professionale, concreto, orientato al cliente
+        - Linguaggio naturale, non artificiale
+        - Inserire riferimenti locali quando coerenti (città, zona, territorio)
+        - Evidenziare benefici concreti per il cliente
+        - CTA finale soft e locale (es. “Contattaci per maggiori informazioni”, “Vieni a trovarci”, “Chiama ora per una consulenza”)
+        - Ogni post deve essere diverso dagli altri per angolazione e struttura
+        - Evitare frasi generiche come: “leader del settore”, “massima qualità”, “anni di esperienza” se non supportate da dettagli
+        - Non usare emoji
+        - Non usare hashtag
+        - Non usare elenchi puntati
+        - Non inserire virgolette nel testo
+        
+        Struttura consigliata:
+        1. Hook iniziale specifico e concreto
+        2. Sviluppo con valore pratico
+        3. Chiusura con CTA locale
+        
+        Output:
+        Rispondi ESCLUSIVAMENTE in formato JSON valido, senza testo aggiuntivo prima o dopo:
+        
+        {{
+          "posts": [
+            "Testo completo del post 1",
+            "Testo completo del post 2"
+          ]
+        }}
+        """
         response = self.openai_client.chat.completions.create(
             model="gpt-4.1",
             messages=[{"role":"user","content":prompt}],
