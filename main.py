@@ -106,7 +106,7 @@ class LocalSEOPlanner:
 
     def summarize_sources(self, topic, sources_text):
         prompt = f"""
-Sei un analista SEO. Riassumi le informazioni più utili su "{topic}" basandoti sui testi forniti.
+Sei un analista Local SEO. Riassumi le informazioni più utili su "{topic}" basandoti sui testi forniti.
 Sintesi 150-200 parole + 3-5 punti chiave.
 
 TESTI:
@@ -120,7 +120,7 @@ OUTPUT:
             model="gpt-4.1",
             messages=[{"role":"user","content":prompt}],
             max_tokens=1200,
-            temperature=0.5
+            temperature=0.9
         )
         return response.choices[0].message.content
 
@@ -138,7 +138,7 @@ Informazioni di riferimento: {summary}
 Regole:
 - 80-120 parole
 - tono professionale
-- CTA locale soft (contattaci, vieni in sede, ecc.)
+- CTA locale soft (contattaci, chiama, ecc.)
 - nessuna frase generica
 
 Rispondi SOLO in JSON:
@@ -149,7 +149,7 @@ Rispondi SOLO in JSON:
         response = self.openai_client.chat.completions.create(
             model="gpt-4.1",
             messages=[{"role":"user","content":prompt}],
-            max_tokens=2000,
+            max_tokens=30000,
             temperature=0.7
         )
         content = response.choices[0].message.content
