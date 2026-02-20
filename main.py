@@ -119,58 +119,61 @@ OUTPUT:
 """
         response = self.openai_client.chat.completions.create(
             model="gpt-4.1",
-            messages=[{"role":"user","content":prompt}],
+            messages=[{"role": "user", "content": prompt}],
             max_tokens=1200,
             temperature=0.9
         )
         return response.choices[0].message.content
 
-    def generate_posts(self, business, sector, topic, brief, summary, n_posts):
+    def generate_posts(self, business, sector, topic, brief, summary, n_posts, target_location=""):
         prompt = f"""
-        Agisci come un copywriter senior specializzato in Local SEO e Google Business Profile.
-        
-        Obiettivo:
-        Generare {n_posts} post ottimizzati per Google Business Profile, pensati per aumentare visibilità locale e conversioni.
-        
-        Dati azienda:
-        - Nome attività: {business}
-        - Settore: {sector}
-        - Argomento del post: {topic}
-        - Brief aggiuntivo: {brief}
-        - Informazioni di riferimento: {summary}
-        
-        Linee guida obbligatorie:
-        - Lunghezza: minimo 80, massimo 120 parole
-        - Tono: professionale, concreto, orientato al cliente
-        - Linguaggio naturale, non artificiale
-        - Inserire riferimenti locali quando presenti nei summury
-        - Evidenziare benefici concreti per il cliente
-        - CTA finale soft e locale (es. “Contattaci per maggiori informazioni”, “Vieni a trovarci”, “Chiama ora per una consulenza”)
-        - Ogni post deve essere diverso dagli altri per angolazione e struttura
-        - Evitare frasi generiche come: “leader del settore”, “massima qualità”, “anni di esperienza” se non supportate da dettagli
-        - Non usare emoji
-        - Non usare hashtag
-        - Non usare elenchi puntati
-        - Non inserire virgolette nel testo
-        
-        Struttura consigliata:
-        1. Hook iniziale specifico e concreto
-        2. Sviluppo con valore pratico
-        3. Chiusura con CTA locale
-        
-        Output:
-        Rispondi ESCLUSIVAMENTE in formato JSON valido, senza testo aggiuntivo prima o dopo:
-        
-        {{
-          "posts": [
-            "Testo completo del post 1",
-            "Testo completo del post 2"
-          ]
-        }}
-        """
+Agisci come un copywriter senior specializzato in Local SEO e Google Business Profile.
+
+Obiettivo:
+Generare {n_posts} post ottimizzati per Google Business Profile, pensati per aumentare visibilità locale e conversioni.
+
+Dati azienda:
+- Nome attività: {business}
+- Settore: {sector}
+- Argomento del post: {topic}
+- Brief aggiuntivo: {brief}
+- Informazioni di riferimento: {summary}
+- Località target: {target_location or "N/D"}
+
+Linee guida obbligatorie:
+- Lunghezza: minimo 80, massimo 120 parole
+- Tono: professionale, concreto, orientato al cliente
+- Linguaggio naturale, non artificiale
+- Se la località target è valorizzata, inserire riferimenti locali solo a: "{target_location}".
+- Se la località target è vuota, non inserire alcuna località.
+- Non usare altre località non fornite.
+- Evidenziare benefici concreti per il cliente
+- CTA finale soft e locale (es. “Contattaci per maggiori informazioni”, “Vieni a trovarci”, “Chiama ora per una consulenza”)
+- Ogni post deve essere diverso dagli altri per angolazione e struttura
+- Evitare frasi generiche come: “leader del settore”, “massima qualità”, “anni di esperienza” se non supportate da dettagli
+- Non usare emoji
+- Non usare hashtag
+- Non usare elenchi puntati
+- Non inserire virgolette nel testo
+
+Struttura consigliata:
+1. Hook iniziale specifico e concreto
+2. Sviluppo con valore pratico
+3. Chiusura con CTA locale
+
+Output:
+Rispondi ESCLUSIVAMENTE in formato JSON valido, senza testo aggiuntivo prima o dopo:
+
+{{
+  "posts": [
+    "Testo completo del post 1",
+    "Testo completo del post 2"
+  ]
+}}
+"""
         response = self.openai_client.chat.completions.create(
             model="gpt-4.1",
-            messages=[{"role":"user","content":prompt}],
+            messages=[{"role": "user", "content": prompt}],
             max_tokens=30000,
             temperature=0.7
         )
@@ -199,6 +202,7 @@ with st.form("planner_form"):
     business = st.text_input("Nome azienda")
     sector = st.text_input("Settore")
     website = st.text_input("Sito web (es: https://www.sito.it)")
+    target_location = st.text_input("Località target (es: Milano, Bologna, ecc.)")  # <-- nuovo campo
     
     topic_mode = st.selectbox("Argomenti", ["Singolo argomento", "Lista di argomenti"])
     topic_input = st.text_area("Inserisci argomento/i (uno per riga)")
@@ -240,7 +244,9 @@ if submit:
 
         status.write(f"✍️ Generazione post per: {topic}")
         summary = optimizer.summarize_sources(topic, sources_text)
-        posts = optimizer.generate_posts(business, sector, topic, brief, summary, n_posts)
+        posts = optimizer.generate_posts(
+            business, sector, topic, brief, summary, n_posts, target_location
+        )
         current_step += 1
         progress.progress(current_step / total_steps)
 
