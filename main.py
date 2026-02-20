@@ -115,6 +115,7 @@ TESTI:
 OUTPUT:
 1. Sintesi
 2. Punti chiave (bullet)
+3. Località di riferimento
 """
         response = self.openai_client.chat.completions.create(
             model="gpt-4.1",
@@ -142,7 +143,7 @@ OUTPUT:
         - Lunghezza: minimo 80, massimo 120 parole
         - Tono: professionale, concreto, orientato al cliente
         - Linguaggio naturale, non artificiale
-        - Inserire riferimenti locali quando coerenti (città, zona, territorio)
+        - Inserire riferimenti locali quando presenti nei summury
         - Evidenziare benefici concreti per il cliente
         - CTA finale soft e locale (es. “Contattaci per maggiori informazioni”, “Vieni a trovarci”, “Chiama ora per una consulenza”)
         - Ogni post deve essere diverso dagli altri per angolazione e struttura
