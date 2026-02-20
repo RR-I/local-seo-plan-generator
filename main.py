@@ -5,13 +5,6 @@ from openai import OpenAI
 from io import BytesIO
 import pandas as pd
 
-# ============================
-# SECRETS
-# ============================
-DATAFORSEO_LOGIN = st.secrets["DATAFORSEO_LOGIN"]
-DATAFORSEO_PASSWORD = st.secrets["DATAFORSEO_PASSWORD"]
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-
 APP_PASSWORD = st.secrets["APP_PASSWORD"]
 
 if "authenticated" not in st.session_state:
@@ -27,6 +20,19 @@ if not st.session_state.authenticated:
         else:
             st.error("Password errata")
     st.stop()
+
+DATAFORSEO_LOGIN = st.secrets["DATAFORSEO_LOGIN"]
+DATAFORSEO_PASSWORD = st.secrets["DATAFORSEO_PASSWORD"]
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+
+# ============================
+# CHECK EXCEL SUPPORT
+# ============================
+try:
+    import openpyxl
+    EXCEL_AVAILABLE = True
+except ImportError:
+    EXCEL_AVAILABLE = False
 
 # ============================
 # CACHE
@@ -151,7 +157,6 @@ Rispondi SOLO in JSON:
             data = json.loads(content)
             return data.get("posts", [])
         except:
-            # fallback parsing
             parts = re.split(r"POST\s*\d+[:\-]", content)
             return [p.strip() for p in parts if p.strip()]
 
@@ -165,7 +170,7 @@ with st.expander("ℹ️ Come funziona?"):
     st.write("""
     Inserisci i dati aziendali, scegli gli argomenti e il numero di post.
     L'app cerca contenuti nel sito o nel web, li riassume e genera i post.
-    Output finale: Excel con piano editoriale.
+    Output finale: Excel (se disponibile) o CSV.
     """)
 
 with st.form("planner_form"):
@@ -189,18 +194,33 @@ if submit:
         st.stop()
 
     rows = []
+    progress = st.progress(0)
+    status = st.empty()
+
+    total_steps = len(topics) * 3
+    current_step = 0
+
     for topic in topics:
+        status.write(f"🔍 Ricerca SERP per: {topic}")
         query = f"{topic} site:{website}" if source_mode.startswith("Dal sito") else topic
         serp = optimizer.get_serp_results(query)
+        current_step += 1
+        progress.progress(current_step / total_steps)
 
+        status.write(f"📄 Estrazione contenuti per: {topic}")
         sources_text = ""
         sources_urls = []
         for r in serp:
             sources_urls.append(r["url"])
             sources_text += optimizer.extract_text(r["url"]) + "\n"
+        current_step += 1
+        progress.progress(current_step / total_steps)
 
+        status.write(f"✍️ Generazione post per: {topic}")
         summary = optimizer.summarize_sources(topic, sources_text)
         posts = optimizer.generate_posts(business, sector, topic, brief, summary, n_posts)
+        current_step += 1
+        progress.progress(current_step / total_steps)
 
         for p in posts:
             rows.append({
@@ -211,17 +231,30 @@ if submit:
                 "Immagine": ""
             })
 
+    status.write("✅ Completato!")
+
     df = pd.DataFrame(rows)
     st.success("✅ Piano editoriale generato!")
     st.dataframe(df, use_container_width=True)
 
-    buffer = BytesIO()
-    df.to_excel(buffer, index=False)
-    buffer.seek(0)
+    # ===== EXPORT =====
+    if EXCEL_AVAILABLE:
+        buffer = BytesIO()
+        df.to_excel(buffer, index=False)
+        buffer.seek(0)
 
-    st.download_button(
-        "⬇️ Scarica Excel",
-        data=buffer,
-        file_name="piano_editoriale_local_seo.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+        st.download_button(
+            "⬇️ Scarica Excel",
+            data=buffer,
+            file_name="piano_editoriale_local_seo.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    else:
+        st.warning("⚠️ openpyxl non installato. Scarica CSV oppure aggiungi openpyxl nelle dipendenze.")
+        csv = df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "⬇️ Scarica CSV",
+            data=csv,
+            file_name="piano_editoriale_local_seo.csv",
+            mime="text/csv"
+        )
