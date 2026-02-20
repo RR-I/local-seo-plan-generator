@@ -12,6 +12,22 @@ DATAFORSEO_LOGIN = st.secrets["DATAFORSEO_LOGIN"]
 DATAFORSEO_PASSWORD = st.secrets["DATAFORSEO_PASSWORD"]
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
+APP_PASSWORD = st.secrets["APP_PASSWORD"]
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.title("🔒 Accesso protetto")
+    pwd = st.text_input("Inserisci la password", type="password")
+    if st.button("Entra"):
+        if pwd == APP_PASSWORD:
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("Password errata")
+    st.stop()
+
 # ============================
 # CACHE
 # ============================
