@@ -399,7 +399,7 @@ Rispondi ESCLUSIVAMENTE in formato JSON valido, senza testo aggiuntivo prima o d
             model="gpt-4.1",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=30000,
-           _temperature=0.7
+            temperature=0.7
         )
         content = response.choices[0].message.content
         try:
