@@ -266,7 +266,10 @@ def get_openai_client():
 # ============================
 def fetch_serp(keyword, encoded_credentials, depth=5):
     url = "https://api.dataforseo.com/v3/serp/google/organic/live/advanced"
-    headers = {"Authorization": f"Basic {encoded_credentials}", "Content-Type": "application/json"}
+    headers = {
+        "Authorization": f"Basic {encoded_credentials}",
+        "Content-Type": "application/json"
+    }
     payload = json.dumps([{
         "keyword": keyword,
         "location_code": 2380,
@@ -275,13 +278,26 @@ def fetch_serp(keyword, encoded_credentials, depth=5):
         "os": "windows",
         "depth": depth
     }])
+
     response = requests.post(url, headers=headers, data=payload)
-    if response.status_code == 200:
-        data = response.json()
-        if data.get("status_code") == 20000:
-            results = data["tasks"][0]["result"][0]["items"]
-            return [r for r in results if r["type"] == "organic"][:depth]
-    return []
+    if response.status_code != 200:
+        return []
+
+    data = response.json()
+    if data.get("status_code") != 20000:
+        return []
+
+    tasks = data.get("tasks") or []
+    if not tasks:
+        return []
+
+    task_result = tasks[0].get("result") or []
+    if not task_result:
+        return []
+
+    items = task_result[0].get("items") or []
+    organic_results = [r for r in items if r.get("type") == "organic"]
+    return organic_results[:depth]
 
 def fetch_content_full(url, encoded_credentials):
     api_url = "https://api.dataforseo.com/v3/on_page/content_parsing/live"
