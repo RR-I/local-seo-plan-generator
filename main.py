@@ -23,7 +23,7 @@ html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }
 .stApp {
-    background-color: #f4f6fb;
+    background-color: white;
 }
 </style>
 """
