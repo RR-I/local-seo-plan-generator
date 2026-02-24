@@ -6,7 +6,7 @@ from io import BytesIO
 import pandas as pd
 
 # ============================
-# CONFIGURAZIONE PAGINA & STILE
+# CONFIGURAZIONE PAGINA
 # ============================
 st.set_page_config(
     page_title="Local SEO Editorial Planner",
@@ -14,134 +14,20 @@ st.set_page_config(
     layout="wide"
 )
 
-CUSTOM_CSS = """
+BASE_STYLE = """
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-    html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
-    }
-    .block-container {
-        padding: 2.5rem 4rem 3rem;
-        background: #f5f7fb;
-    }
-    .hero {
-        background: linear-gradient(135deg, rgba(34, 106, 228, 0.15), rgba(61, 138, 255, 0.25));
-        border-radius: 24px;
-        padding: 2.5rem 3rem;
-        box-shadow: 0 18px 45px rgba(32, 68, 162, 0.08);
-        margin-bottom: 2rem;
-        color: #0f1a3c;
-    }
-    .hero h1 {
-        font-weight: 700;
-        font-size: 2.4rem;
-        margin-bottom: 0.6rem;
-    }
-    .hero p {
-        font-size: 1rem;
-        color: #2d4271;
-    }
-    .glass-card {
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 20px;
-        padding: 1.8rem 2rem;
-        box-shadow: 0 22px 50px rgba(15, 23, 42, 0.06);
-        border: 1px solid rgba(152, 175, 233, 0.15);
-        margin-bottom: 1.4rem;
-    }
-    .glass-card h3 {
-        font-weight: 600;
-        margin-bottom: 1.2rem;
-        color: #183169;
-    }
-    .glow-button > button {
-        width: 100%;
-        padding: 0.9rem 1.3rem;
-        border-radius: 16px;
-        border: none;
-        background: linear-gradient(135deg, #1f60ff, #2344d2);
-        color: white;
-        font-weight: 600;
-        font-size: 0.98rem;
-        box-shadow: 0 20px 35px rgba(35, 76, 215, 0.35);
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .glow-button > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 24px 45px rgba(35, 76, 215, 0.45);
-    }
-    .login-card {
-        max-width: 450px;
-        margin: 3rem auto;
-        border-radius: 22px;
-        padding: 2.6rem 2.4rem;
-        background: rgba(255, 255, 255, 0.9);
-        box-shadow: 0 26px 70px rgba(15, 23, 42, 0.12);
-        border: 1px solid rgba(152, 175, 233, 0.2);
-    }
-    .hint-box {
-        background: rgba(48, 94, 223, 0.08);
-        border-radius: 16px;
-        padding: 1.2rem 1.4rem;
-        margin-bottom: 1.5rem;
-        border: 1px solid rgba(48, 94, 223, 0.18);
-        color: #173372;
-    }
-    .download-box {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-    .download-card {
-        flex: 1 1 260px;
-        background: white;
-        border-radius: 18px;
-        padding: 1.5rem 1.6rem;
-        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
-        border: 1px solid rgba(152, 175, 233, 0.18);
-    }
-    .download-card h4 {
-        margin: 0 0 0.4rem;
-        font-weight: 600;
-    }
-    .download-card small {
-        display: block;
-        color: #5b6b88;
-        margin-bottom: 1.1rem;
-    }
-    .download-card .stDownloadButton > button {
-        width: 100%;
-        border-radius: 14px;
-        border: 1px solid rgba(35, 82, 231, 0.35);
-        padding: 0.65rem 1.2rem;
-        color: #1d3c9d;
-        font-weight: 600;
-        background: rgba(35, 82, 231, 0.08);
-    }
-    .download-card .stDownloadButton > button:hover {
-        border-color: rgba(35, 82, 231, 0.5);
-        background: rgba(35, 82, 231, 0.15);
-    }
-    .stRadio > label {font-weight: 500; color: #1a2d54;}
-    .stTextInput > label, .stTextArea > label, .stSelectbox > label {
-        font-weight: 500;
-        color: #1a2d54;
-    }
-    .stDataFrame {
-        border-radius: 16px;
-        overflow: hidden;
-        border: 1px solid rgba(164, 181, 219, 0.45);
-        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.07);
-    }
-    .stProgress > div > div {
-        background-image: linear-gradient(90deg, #3a66f2, #5f82ff);
-        border-radius: 20px;
-    }
+:root {
+    color-scheme: light;
+}
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+}
+.stApp {
+    background-color: #f4f6fb;
+}
 </style>
 """
-
-st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+st.markdown(BASE_STYLE, unsafe_allow_html=True)
 
 APP_PASSWORD = st.secrets["APP_PASSWORD"]
 
@@ -152,26 +38,215 @@ if "authenticated" not in st.session_state:
 # LOGIN
 # ============================
 if not st.session_state.authenticated:
-    st.markdown("<div class='login-card'>", unsafe_allow_html=True)
-    st.markdown("### 🔐 Accesso riservato")
-    st.write("Inserisci la password per accedere al planner editoriale Local SEO.")
-    pwd = st.text_input("Password", type="password")
-    if st.button("Accedi", use_container_width=True):
-        if pwd == APP_PASSWORD:
-            st.session_state.authenticated = True
-            st.success("Accesso effettuato!")
-            st.rerun()
-        else:
-            st.error("Password errata. Riprova.")
-    st.markdown("</div>", unsafe_allow_html=True)
+    LOGIN_STYLE = """
+    <style>
+        .block-container {
+            max-width: 420px !important;
+            padding-top: 12vh;
+            padding-bottom: 8vh;
+        }
+        .login-card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 2.4rem 2.2rem;
+            border: 1px solid #dfe4ef;
+            box-shadow: 0 20px 55px rgba(15, 23, 42, 0.08);
+        }
+        .login-card h2 {
+            font-size: 1.6rem;
+            color: #1f2a44;
+            margin-bottom: 0.4rem;
+        }
+        .login-card p {
+            color: #4a5771;
+            margin-bottom: 1.5rem;
+        }
+        .stButton > button {
+            width: 100%;
+            border-radius: 12px;
+            padding: 0.8rem 1.2rem;
+            border: none;
+            background: #2957ff;
+            color: white;
+            font-weight: 600;
+            transition: background 0.2s ease;
+        }
+        .stButton > button:hover {
+            background: #1f46d2;
+        }
+    </style>
+    """
+    st.markdown(LOGIN_STYLE, unsafe_allow_html=True)
+
+    with st.container():
+        st.markdown("<div class='login-card'>", unsafe_allow_html=True)
+        st.markdown("<h2>Accesso riservato</h2>", unsafe_allow_html=True)
+        st.markdown(
+            "<p>Inserisci la password per accedere al planner editoriale Local SEO.</p>",
+            unsafe_allow_html=True
+        )
+        pwd = st.text_input("Password", type="password")
+        if st.button("Accedi"):
+            if pwd == APP_PASSWORD:
+                st.session_state.authenticated = True
+                st.success("Accesso effettuato.")
+                st.rerun()
+            else:
+                st.error("Password errata. Riprova.")
+        st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
+
+# ============================
+# STILI APP
+# ============================
+APP_STYLE = """
+<style>
+.block-container {
+    max-width: 1200px !important;
+    padding: 2.5rem 3rem;
+}
+.header-card {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 1.8rem 2.2rem;
+    border: 1px solid #e2e7f2;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.07);
+    margin-bottom: 1.8rem;
+}
+.header-card h1 {
+    margin: 0;
+    font-size: 2rem;
+    color: #1f2942;
+}
+.header-card p {
+    margin: 0.45rem 0 0;
+    color: #49536b;
+}
+
+.info-card, .form-card, .result-card, .download-card, .utility-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 1.6rem 1.9rem;
+    border: 1px solid #e2e7f2;
+    box-shadow: 0 14px 35px rgba(15, 23, 42, 0.05);
+    margin-bottom: 1.5rem;
+}
+.info-card h4 {
+    margin-bottom: 0.8rem;
+    font-size: 1.1rem;
+    color: #1f2942;
+}
+.info-card ul {
+    padding-left: 1.1rem;
+    margin: 0;
+    color: #53607a;
+}
+.info-card li {
+    margin-bottom: 0.4rem;
+}
+
+.utility-card h4 {
+    margin-bottom: 0.7rem;
+    color: #1f2942;
+}
+.utility-card p {
+    color: #53607a;
+    margin-bottom: 1rem;
+}
+
+.form-card h3 {
+    margin-bottom: 0.2rem;
+    color: #1f2942;
+}
+.form-card p.section-subtitle {
+    color: #5b6885;
+    margin-bottom: 1.2rem;
+}
+.section-divider {
+    border: none;
+    border-top: 1px solid #e8ecf5;
+    margin: 1.6rem 0 1.4rem;
+}
+
+.stRadio > label,
+.stTextInput > label,
+.stTextArea > label,
+.stSelectbox > label,
+.stNumberInput > label {
+    font-weight: 600;
+    color: #2b3650;
+}
+
+.stForm > div button {
+    border-radius: 14px !important;
+    padding: 0.9rem 1.2rem !important;
+    border: none !important;
+    background: linear-gradient(135deg, #2957ff, #233fce) !important;
+    color: white !important;
+    font-weight: 600 !important;
+    font-size: 0.98rem !important;
+}
+
+.result-card h3, .download-card h3 {
+    margin-bottom: 1rem;
+    color: #1f2942;
+}
+
+.stDataFrame {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #dfe4ef;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+}
+
+.download-card .stDownloadButton > button {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid #d0d9f0;
+    background: #f3f6ff;
+    color: #1f3bad;
+    font-weight: 600;
+    padding: 0.75rem 1.2rem;
+}
+.download-card .stDownloadButton > button:hover {
+    border-color: #375fff;
+}
+.utility-card .stButton > button {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid #d0d9f0;
+    background: #f3f6ff;
+    color: #1f3bad;
+    font-weight: 600;
+    padding: 0.75rem 1.2rem;
+}
+.utility-card .stButton > button:hover {
+    border-color: #375fff;
+}
+
+.stProgress > div > div {
+    background-image: linear-gradient(90deg, #2a5af7, #476eff);
+    border-radius: 12px;
+}
+.status-container {
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 980px) {
+    .block-container {
+        padding: 1.5rem;
+    }
+}
+</style>
+"""
+st.markdown(APP_STYLE, unsafe_allow_html=True)
 
 DATAFORSEO_LOGIN = st.secrets["DATAFORSEO_LOGIN"]
 DATAFORSEO_PASSWORD = st.secrets["DATAFORSEO_PASSWORD"]
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
 # ============================
-# CHECK EXCEL SUPPORT
+# CHECK EXCEL
 # ============================
 try:
     import openpyxl
@@ -187,14 +262,11 @@ def get_openai_client():
     return OpenAI(api_key=OPENAI_API_KEY)
 
 # ============================
-# NIENTE CACHE per SERP e PARSING
+# API helper
 # ============================
 def fetch_serp(keyword, encoded_credentials, depth=5):
     url = "https://api.dataforseo.com/v3/serp/google/organic/live/advanced"
-    headers = {
-        "Authorization": f"Basic {encoded_credentials}",
-        "Content-Type": "application/json"
-    }
+    headers = {"Authorization": f"Basic {encoded_credentials}", "Content-Type": "application/json"}
     payload = json.dumps([{
         "keyword": keyword,
         "location_code": 2380,
@@ -225,7 +297,7 @@ def fetch_content_full(url, encoded_credentials):
     return None
 
 # ============================
-# CLASSE PRINCIPALE
+# CLASSE PLANNER
 # ============================
 class LocalSEOPlanner:
     def __init__(self, login, password):
@@ -274,7 +346,8 @@ OUTPUT:
         )
         return response.choices[0].message.content
 
-    def generate_posts(self, business, sector, topic, brief, summary, n_posts, target_location="", tone="professionale"):
+    def generate_posts(self, business, sector, topic, brief, summary, n_posts,
+                       target_location="", tone="professionale"):
         prompt = f"""
 Agisci come un copywriter senior specializzato in Local SEO e Google Business Profile.
 
@@ -326,7 +399,7 @@ Rispondi ESCLUSIVAMENTE in formato JSON valido, senza testo aggiuntivo prima o d
             model="gpt-4.1",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=30000,
-            temperature=0.7
+           _temperature=0.7
         )
         content = response.choices[0].message.content
         try:
@@ -337,95 +410,123 @@ Rispondi ESCLUSIVAMENTE in formato JSON valido, senza testo aggiuntivo prima o d
             return [p.strip() for p in parts if p.strip()]
 
 # ============================
-# HERO & INTRO
+# HEADER
 # ============================
 st.markdown(
     """
-    <div class="hero">
+    <div class="header-card">
         <h1>Local SEO Editorial Planner</h1>
-        <p>
-            Genera post mirati per Google Business Profile partendo da analisi SERP, contenuti reali e insight locali.
-            Personalizza argomenti, tono di voce e ricevi un piano editoriale pronto da pubblicare.
-        </p>
+        <p>Genera post mirati per Google Business Profile partendo da analisi SERP e contenuti reali,
+        con un flusso guidato e pronti all’uso.</p>
     </div>
     """,
     unsafe_allow_html=True
 )
 
-with st.expander("💡 Suggerimenti rapidi", expanded=True):
+info_col, utility_col = st.columns([3, 1])
+with info_col:
     st.markdown(
         """
-        - Inserisci argomenti specifici e, se possibile, legati ai servizi chiave dell’azienda.
-        - Scegli il tono più adatto al tuo target (professionale, divulgativo, tecnico…).
-        - Seleziona “Dal sito web” per valorizzare i contenuti proprietari, “Dal web” per trend e competitor.
-        """
+        <div class="info-card">
+            <h4>Come procedere</h4>
+            <ul>
+                <li>Compila i dati dell’attività (settore, sito, tono di voce).</li>
+                <li>Inserisci gli argomenti: uno per riga se ne vuoi più di uno.</li>
+                <li>Scegli se analizzare solo il tuo sito o l’intero web.</li>
+                <li>Scarica il piano generato e adatta le date editoriali.</li>
+            </ul>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
-# Pulsante opzionale per svuotare cache
-top_cols = st.columns([6, 1])
-with top_cols[1]:
-    if st.button("Ripulisci cache"):
+with utility_col:
+    st.markdown(
+        """
+        <div class="utility-card">
+            <h4>Utility</h4>
+            <p>Ripulisci la cache in caso di modifiche a prompt o risorse.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    if st.button("Svuota cache", key="clear_cache"):
         st.cache_data.clear()
         st.cache_resource.clear()
-        st.toast("Cache svuotata. I prossimi dati saranno aggiornati.", icon="🧼")
+        st.success("Cache svuotata. Le prossime elaborazioni useranno solo dati aggiornati.")
 
 # ============================
-# FORM PRINCIPALE
+# FORM
 # ============================
 with st.form("planner_form"):
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    st.markdown("### 🎯 Configurazione")
+    st.markdown("<div class='form-card'>", unsafe_allow_html=True)
+
+    st.markdown("<h3>1. Dati dell’attività</h3>", unsafe_allow_html=True)
+    st.markdown("<p class='section-subtitle'>Informazioni necessarie per contestualizzare i contenuti.</p>", unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
     with col1:
         business = st.text_input("Nome azienda")
-        sector = st.text_input("Settore")
+        sector = st.text_input("Settore / categoria")
         website = st.text_input("Sito web (es: https://www.sito.it)")
-        target_location = st.text_input("Località target (es: Milano, Bologna, ecc.)")
     with col2:
-        tone = st.selectbox("Tono di voce", ["professionale", "tecnico", "divulgativo", "istituzionale", "commerciale"])
-        topic_mode = st.selectbox("Modalità argomenti", ["Singolo argomento", "Lista di argomenti"])
-        topic_input = st.text_area("Argomento/i (uno per riga)", height=150)
-        n_posts = st.number_input("Numero post per argomento", 1, 20, 3)
-        brief = st.text_area("Brief / informazioni aggiuntive", height=110)
-    st.markdown("</div>", unsafe_allow_html=True)
+        target_location = st.text_input("Località target (es: Milano, Bologna…)")
+        tone = st.selectbox(
+            "Tono di voce",
+            ["professionale", "tecnico", "divulgativo", "istituzionale", "commerciale"],
+            index=0
+        )
+        n_posts = st.number_input("Numero post per argomento", min_value=1, max_value=20, value=3)
 
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    st.markdown("### 🔎 Fonti e ricerca")
+    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+
+    st.markdown("<h3>2. Argomenti e brief</h3>", unsafe_allow_html=True)
+    st.markdown("<p class='section-subtitle'>Inserisci uno o più argomenti (uno per riga) e note utili.</p>", unsafe_allow_html=True)
+
+    topic_input = st.text_area("Argomento/i di riferimento", height=130, placeholder="Esempio:\nImpianti fotovoltaici residenziali\nManutenzione straordinaria impianti\nSoluzioni di storage per PMI")
+    brief = st.text_area("Brief / informazioni aggiuntive", height=110, placeholder="Specifiche, promozioni, servizi distintivi, CTA desiderata…")
+
+    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+
+    st.markdown("<h3>3. Strategia di ricerca</h3>", unsafe_allow_html=True)
     source_mode = st.radio(
-        "Scegli la fonte principale",
+        "Fonte da cui estrarre insight",
         ["Dal sito web (site:)", "Dal web (query generica)"],
         horizontal=True
     )
-    st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='glow-button'>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
     submit = st.form_submit_button("Genera piano editoriale")
-    st.markdown("</div>", unsafe_allow_html=True)
 
+# ============================
+# SUBMIT LOGICA
+# ============================
 if submit:
-    optimizer = LocalSEOPlanner(DATAFORSEO_LOGIN, DATAFORSEO_PASSWORD)
-
     topics = [t.strip() for t in topic_input.split("\n") if t.strip()]
     if not topics:
         st.error("Inserisci almeno un argomento.")
         st.stop()
 
+    if not business or not sector:
+        st.error("Compila almeno nome azienda e settore.")
+        st.stop()
+
+    optimizer = LocalSEOPlanner(DATAFORSEO_LOGIN, DATAFORSEO_PASSWORD)
+
     rows = []
+    total_steps = len(topics) * 3
+    current_step = 0
 
-    with st.status("⏳ Elaborazione in corso…", expanded=True) as status_box:
-        total_steps = len(topics) * 3
+    with st.status("Elaborazione in corso…", expanded=True) as status_box:
         progress = st.progress(0)
-        current_step = 0
-
         for topic in topics:
-            status_box.update(label=f"🔍 SERP in analisi per **{topic}**")
-            query = f"{topic} site:{website}" if source_mode.startswith("Dal sito") else topic
+            status_box.update(label=f"Analisi SERP per: **{topic}**")
+            query = f"{topic} site:{website}" if source_mode.startswith("Dal sito") and website else topic
             serp = optimizer.get_serp_results(query)
             current_step += 1
             progress.progress(current_step / total_steps)
 
-            status_box.update(label=f"🧾 Contenuti estratti per **{topic}**")
+            status_box.update(label=f"Estrazione contenuti per: **{topic}**")
             sources_text = ""
             sources_urls = []
             for r in serp:
@@ -434,10 +535,11 @@ if submit:
             current_step += 1
             progress.progress(current_step / total_steps)
 
-            status_box.update(label=f"✍️ Post generati per **{topic}**")
+            status_box.update(label=f"Generazione post per: **{topic}**")
             summary = optimizer.summarize_sources(topic, sources_text)
             posts = optimizer.generate_posts(
-                business, sector, topic, brief, summary, n_posts, target_location, tone
+                business, sector, topic, brief, summary,
+                n_posts, target_location, tone
             )
             current_step += 1
             progress.progress(current_step / total_steps)
@@ -451,51 +553,46 @@ if submit:
                     "Immagine": ""
                 })
 
-        status_box.update(label="✅ Piano completato!", state="complete")
+        status_box.update(label="Elaborazione completata.", state="complete")
 
-    st.toast("Piano editoriale generato con successo!", icon="🚀")
+    if not rows:
+        st.warning("Nessun post generato. Verifica i dati inseriti e riprova.")
+        st.stop()
+
     df = pd.DataFrame(rows)
 
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    st.markdown("### 📅 Piano editoriale")
-    st.dataframe(df, use_container_width=True, height=420)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # ===== EXPORT =====
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    st.markdown("### 📦 Esporta il risultato")
-    st.markdown("<div class='download-box'>", unsafe_allow_html=True)
-
-    if EXCEL_AVAILABLE:
-        buffer = BytesIO()
-        df.to_excel(buffer, index=False)
-        buffer.seek(0)
-        st.markdown("<div class='download-card'>", unsafe_allow_html=True)
-        st.markdown("#### Excel")
-        st.markdown("<small>File strutturato con fogli modificabili</small>", unsafe_allow_html=True)
-        st.download_button(
-            "Scarica .xlsx",
-            data=buffer,
-            file_name="piano_editoriale_local_seo.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True
-        )
+    with st.container():
+        st.markdown("<div class='result-card'>", unsafe_allow_html=True)
+        st.markdown("<h3>Piano editoriale generato</h3>", unsafe_allow_html=True)
+        st.dataframe(df, use_container_width=True, height=420)
         st.markdown("</div>", unsafe_allow_html=True)
-    else:
-        st.warning("⚠️ openpyxl non installato. Attiva il CSV oppure aggiungi openpyxl alle dipendenze.")
 
-    csv = df.to_csv(index=False).encode("utf-8")
-    st.markdown("<div class='download-card'>", unsafe_allow_html=True)
-    st.markdown("#### CSV")
-    st.markdown("<small>Formato universale per tutti i fogli di calcolo</small>", unsafe_allow_html=True)
-    st.download_button(
-        "Scarica .csv",
-        data=csv,
-        file_name="piano_editoriale_local_seo.csv",
-        mime="text/csv",
-        use_container_width=True
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
+    with st.container():
+        st.markdown("<div class='download-card'>", unsafe_allow_html=True)
+        st.markdown("<h3>Esporta</h3>", unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+        export_cols = st.columns(2)
+        if EXCEL_AVAILABLE:
+            buffer = BytesIO()
+            df.to_excel(buffer, index=False)
+            buffer.seek(0)
+            with export_cols[0]:
+                st.download_button(
+                    "Scarica Excel (.xlsx)",
+                    data=buffer,
+                    file_name="piano_editoriale_local_seo.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+        else:
+            with export_cols[0]:
+                st.info("Per esportare in Excel installa openpyxl.", icon="ℹ️")
+
+        csv = df.to_csv(index=False).encode("utf-8")
+        with export_cols[1]:
+            st.download_button(
+                "Scarica CSV (.csv)",
+                data=csv,
+                file_name="piano_editoriale_local_seo.csv",
+                mime="text/csv"
+            )
+        st.markdown("</div>", unsafe_allow_html=True)
