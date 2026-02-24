@@ -5,6 +5,67 @@ from openai import OpenAI
 from io import BytesIO
 import pandas as pd
 
+# ============================
+# CONFIGURAZIONE PAGINA & STILE
+# ============================
+st.set_page_config(
+    page_title="Local SEO Editorial Planner",
+    page_icon="📍",
+    layout="wide"
+)
+
+CUSTOM_CSS = """
+<style>
+    body {font-family: 'Poppins', sans-serif;}
+    h1, h2, h3, h4 {font-weight: 600;}
+    .main {
+        background: #f7f9fc;
+    }
+    .stButton > button {
+        background: linear-gradient(135deg, #2b67f6, #1a51d3);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 0.7rem 1.5rem;
+        font-weight: 600;
+    }
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #234edc, #1840b5);
+        color: white;
+    }
+    .card {
+        background: white;
+        padding: 1.2rem 1.5rem;
+        border-radius: 16px;
+        box-shadow: 0 12px 35px rgba(15, 23, 42, 0.06);
+        margin-bottom: 1.5rem;
+    }
+    .login-card {
+        max-width: 500px;
+        margin: 3rem auto;
+        padding: 2rem 2.2rem;
+    }
+    .navbar {
+        padding: 0.8rem 1.6rem;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 15px 40px rgba(15, 23, 42, 0.08);
+        margin-bottom: 2rem;
+    }
+    /* Stile DataFrame */
+    .css-1wivap2 .st-ag {
+        background-color: white;
+        border-radius: 16px;
+        box-shadow: 0 15px 40px rgba(15, 23, 42, 0.08);
+        padding: 1rem;
+    }
+</style>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+"""
+
+st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+
 APP_PASSWORD = st.secrets["APP_PASSWORD"]
 
 if "authenticated" not in st.session_state:
@@ -14,14 +75,18 @@ if "authenticated" not in st.session_state:
 # LOGIN
 # ============================
 if not st.session_state.authenticated:
+    st.markdown("<div class='card login-card'>", unsafe_allow_html=True)
     st.title("🔒 Accesso protetto")
-    pwd = st.text_input("Inserisci la password", type="password")
+    st.write("Inserisci la password per utilizzare il planner editoriale Local SEO.")
+    pwd = st.text_input("Password", type="password")
     if st.button("Entra"):
         if pwd == APP_PASSWORD:
             st.session_state.authenticated = True
-            st.rerun()
+            st.success("Accesso effettuato con successo!")
+            st.experimental_rerun()
         else:
-            st.error("Password errata")
+            st.error("Password errata. Riprova.")
+    st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
 DATAFORSEO_LOGIN = st.secrets["DATAFORSEO_LOGIN"]
@@ -49,7 +114,10 @@ def get_openai_client():
 # ============================
 def fetch_serp(keyword, encoded_credentials, depth=5):
     url = "https://api.dataforseo.com/v3/serp/google/organic/live/advanced"
-    headers = {"Authorization": f"Basic {encoded_credentials}", "Content-Type": "application/json"}
+    headers = {
+        "Authorization": f"Basic {encoded_credentials}",
+        "Content-Type": "application/json"
+    }
     payload = json.dumps([{
         "keyword": keyword,
         "location_code": 2380,
@@ -192,108 +260,147 @@ Rispondi ESCLUSIVAMENTE in formato JSON valido, senza testo aggiuntivo prima o d
             return [p.strip() for p in parts if p.strip()]
 
 # ============================
-# STREAMLIT UI
+# NAVBAR
 # ============================
-st.set_page_config(page_title="Local SEO Editorial Planner", layout="wide")
-st.title("📍 Local SEO Editorial Planner")
-
-with st.expander("ℹ️ Come funziona?"):
-    st.write("""
-    Inserisci i dati aziendali, scegli gli argomenti e il numero di post.
-    L'app cerca contenuti nel sito o nel web, li riassume e genera i post.
-    Output finale: Excel (se disponibile) o CSV.
-    """)
+st.markdown(
+    """
+    <div class='navbar'>
+        <h1 style='margin-bottom:0.3rem'>📍 Local SEO Editorial Planner</h1>
+        <p style='color:#546488;'>Crea piani editoriali ottimizzati per Google Business Profile con un approccio data-driven.</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # Pulsante opzionale per svuotare cache (non tocca l'autenticazione)
-if st.button("♻️ Svuota cache"):
-    st.cache_data.clear()
-    st.cache_resource.clear()
-    st.success("Cache svuotata. Le prossime generazioni useranno solo dati freschi.")
+with st.columns([6, 1])[1]:
+    if st.button("♻️ Svuota cache"):
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        st.toast("Cache svuotata. Le prossime generazioni useranno solo dati freschi.", icon="✅")
 
+# ============================
+# INTRO
+# ============================
+st.info(
+    "💡 **Come funziona:** Compila i dati business, scegli gli argomenti e il numero di post. "
+    "L’app analizza le SERP, ricava insight dai contenuti e genera post pronti per il tuo Google Business Profile."
+)
+
+# ============================
+# FORM PRINCIPALE
+# ============================
 with st.form("planner_form"):
-    business = st.text_input("Nome azienda")
-    sector = st.text_input("Settore")
-    website = st.text_input("Sito web (es: https://www.sito.it)")
-    target_location = st.text_input("Località target (es: Milano, Bologna, ecc.)")
-    tone = st.selectbox("Tono di voce", ["professionale", "tecnico", "divulgativo", "istituzionale", "commerciale"])
-    topic_mode = st.selectbox("Argomenti", ["Singolo argomento", "Lista di argomenti"])
-    topic_input = st.text_area("Inserisci argomento/i (uno per riga)")
-    n_posts = st.number_input("Numero post per argomento", 1, 20, 3)
-    brief = st.text_area("Brief / informazioni aggiuntive")
-    source_mode = st.radio("Fonte info", ["Dal sito web (site:)", "Dal web (query generica)"])
-    submit = st.form_submit_button("Genera piano editoriale")
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.subheader("🧭 Configurazione piano editoriale")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        business = st.text_input("Nome azienda")
+        sector = st.text_input("Settore")
+        website = st.text_input("Sito web (es: https://www.sito.it)")
+        target_location = st.text_input("Località target (es: Milano, Bologna, ecc.)")
+    with col2:
+        tone = st.selectbox("Tono di voce", ["professionale", "tecnico", "divulgativo", "istituzionale", "commerciale"])
+        topic_mode = st.selectbox("Argomenti", ["Singolo argomento", "Lista di argomenti"])
+        topic_input = st.text_area("Inserisci argomento/i (uno per riga)", height=160)
+        n_posts = st.number_input("Numero post per argomento", 1, 20, 3)
+        brief = st.text_area("Brief / informazioni aggiuntive", height=120)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.subheader("🔍 Fonti")
+    source_mode = st.radio(
+        "Seleziona la fonte preferita",
+        ["Dal sito web (site:)", "Dal web (query generica)"],
+        horizontal=True
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    submit = st.form_submit_button("Genera piano editoriale", use_container_width=True)
 
 if submit:
     optimizer = LocalSEOPlanner(DATAFORSEO_LOGIN, DATAFORSEO_PASSWORD)
 
     topics = [t.strip() for t in topic_input.split("\n") if t.strip()]
     if not topics:
-        st.error("Inserisci almeno un argomento")
+        st.error("Inserisci almeno un argomento.")
         st.stop()
 
     rows = []
-    progress = st.progress(0)
-    status = st.empty()
 
-    total_steps = len(topics) * 3
-    current_step = 0
+    with st.status("⚙️ Elaborazione in corso...", expanded=True) as status_box:
+        total_steps = len(topics) * 3
+        progress = st.progress(0)
+        current_step = 0
 
-    for topic in topics:
-        status.write(f"🔍 Ricerca SERP per: {topic}")
-        query = f"{topic} site:{website}" if source_mode.startswith("Dal sito") else topic
-        serp = optimizer.get_serp_results(query)
-        current_step += 1
-        progress.progress(current_step / total_steps)
+        for topic in topics:
+            status_box.update(label=f"🔍 Ricerca SERP per: **{topic}**")
+            query = f"{topic} site:{website}" if source_mode.startswith("Dal sito") else topic
+            serp = optimizer.get_serp_results(query)
+            current_step += 1
+            progress.progress(current_step / total_steps)
 
-        status.write(f"📄 Estrazione contenuti per: {topic}")
-        sources_text = ""
-        sources_urls = []
-        for r in serp:
-            sources_urls.append(r["url"])
-            sources_text += optimizer.extract_text(r["url"]) + "\n"
-        current_step += 1
-        progress.progress(current_step / total_steps)
+            status_box.update(label=f"📄 Estrazione contenuti per: **{topic}**")
+            sources_text = ""
+            sources_urls = []
+            for r in serp:
+                sources_urls.append(r["url"])
+                sources_text += optimizer.extract_text(r["url"]) + "\n"
+            current_step += 1
+            progress.progress(current_step / total_steps)
 
-        status.write(f"✍️ Generazione post per: {topic}")
-        summary = optimizer.summarize_sources(topic, sources_text)
-        posts = optimizer.generate_posts(
-            business, sector, topic, brief, summary, n_posts, target_location, tone
-        )
-        current_step += 1
-        progress.progress(current_step / total_steps)
+            status_box.update(label=f"✍️ Generazione post per: **{topic}**")
+            summary = optimizer.summarize_sources(topic, sources_text)
+            posts = optimizer.generate_posts(
+                business, sector, topic, brief, summary, n_posts, target_location, tone
+            )
+            current_step += 1
+            progress.progress(current_step / total_steps)
 
-        for p in posts:
-            rows.append({
-                "Data pubblicazione": "",
-                "Argomento": topic,
-                "Fonte": ", ".join(sources_urls),
-                "Contenuto post": p.strip(),
-                "Immagine": ""
-            })
+            for p in posts:
+                rows.append({
+                    "Data pubblicazione": "",
+                    "Argomento": topic,
+                    "Fonte": ", ".join(sources_urls) if sources_urls else "N/D",
+                    "Contenuto post": p.strip(),
+                    "Immagine": ""
+                })
 
-    status.write("✅ Completato!")
+        status_box.update(label="✅ Piano completato!", state="complete")
+
+    st.toast("Piano editoriale generato con successo!", icon="🎉")
 
     df = pd.DataFrame(rows)
-    st.success("✅ Piano editoriale generato!")
-    st.dataframe(df, use_container_width=True)
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.subheader("📅 Piano editoriale pronto")
+    st.dataframe(df, use_container_width=True, height=420)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     # ===== EXPORT =====
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.subheader("⬇️ Esporta")
     if EXCEL_AVAILABLE:
         buffer = BytesIO()
         df.to_excel(buffer, index=False)
         buffer.seek(0)
         st.download_button(
-            "⬇️ Scarica Excel",
+            "Scarica come Excel",
             data=buffer,
             file_name="piano_editoriale_local_seo.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
         )
     else:
-        st.warning("⚠️ openpyxl non installato. Scarica CSV oppure aggiungi openpyxl nelle dipendenze.")
+        st.warning("⚠️ openpyxl non installato. Scarica il file CSV oppure aggiungi openpyxl alle dipendenze.")
         csv = df.to_csv(index=False).encode("utf-8")
         st.download_button(
-            "⬇️ Scarica CSV",
+            "Scarica come CSV",
             data=csv,
             file_name="piano_editoriale_local_seo.csv",
-            mime="text/csv"
+            mime="text/csv",
+            use_container_width=True
         )
+    st.markdown("</div>", unsafe_allow_html=True)
