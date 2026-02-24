@@ -129,7 +129,7 @@ OUTPUT:
         )
         return response.choices[0].message.content
 
-    def generate_posts(self, business, sector, topic, brief, summary, n_posts, target_location=""):
+    def generate_posts(self, business, sector, topic, brief, summary, n_posts, target_location="", tone="professionale"):
         prompt = f"""
 Agisci come un copywriter senior specializzato in Local SEO e Google Business Profile.
 
@@ -143,14 +143,16 @@ Dati azienda:
 - Brief aggiuntivo: {brief}
 - Informazioni di riferimento: {summary}
 - Località target: {target_location or "N/D"}
+- Tono richiesto: {tone}
 
 Linee guida obbligatorie:
 - Lunghezza: minimo 80, massimo 120 parole
-- Tono: professionale, concreto, orientato al cliente
+- Tono: {tone}
 - Linguaggio naturale, non artificiale
-- Se la località target è valorizzata, inserire riferimenti locali solo a: "{target_location}".
-- Se la località target è vuota, non inserire alcuna località.
-- Non usare altre località non fornite.
+- Se la località target è valorizzata, inserire riferimenti locali solo a: "{target_location}"
+- Se la località target è vuota, non inserire alcuna località
+- Non usare altre località non fornite
+- Non usare frasi tipiche degli LLM come "in conclusione"
 - Evidenziare benefici concreti per il cliente
 - CTA finale soft e locale (es. “Contattaci per maggiori informazioni”, “Vieni a trovarci”, “Chiama ora per una consulenza”)
 - Ogni post deve essere diverso dagli altri per angolazione e struttura
@@ -213,6 +215,7 @@ with st.form("planner_form"):
     sector = st.text_input("Settore")
     website = st.text_input("Sito web (es: https://www.sito.it)")
     target_location = st.text_input("Località target (es: Milano, Bologna, ecc.)")
+    tone = st.selectbox("Tono di voce", ["professionale", "tecnico", "divulgativo", "istituzionale", "commerciale"])
     topic_mode = st.selectbox("Argomenti", ["Singolo argomento", "Lista di argomenti"])
     topic_input = st.text_area("Inserisci argomento/i (uno per riga)")
     n_posts = st.number_input("Numero post per argomento", 1, 20, 3)
@@ -254,7 +257,7 @@ if submit:
         status.write(f"✍️ Generazione post per: {topic}")
         summary = optimizer.summarize_sources(topic, sources_text)
         posts = optimizer.generate_posts(
-            business, sector, topic, brief, summary, n_posts, target_location
+            business, sector, topic, brief, summary, n_posts, target_location, tone
         )
         current_step += 1
         progress.progress(current_step / total_steps)
