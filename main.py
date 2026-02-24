@@ -83,7 +83,7 @@ if not st.session_state.authenticated:
         if pwd == APP_PASSWORD:
             st.session_state.authenticated = True
             st.success("Accesso effettuato con successo!")
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("Password errata. Riprova.")
     st.markdown("</div>", unsafe_allow_html=True)
