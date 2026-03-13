@@ -558,7 +558,7 @@ with st.form("planner_form"):
 
     st.markdown("### 3. Strategia di ricerca")
     source_mode = st.radio(
-        "Fonte da cui estrarre insight",
+        "Fonte da cui estrarre insight. Utilizzare *Dal sito web* se per il piano editoriale bisogna utilizzare le informazioni presenti sul sito web del cliente."
         ["Dal sito web (site:)", "Dal web (query generica)"],
         horizontal=True
     )
