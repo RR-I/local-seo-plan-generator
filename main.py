@@ -1,9 +1,14 @@
-import streamlit as st
-import base64, json, requests, re
-from typing import List
-from openai import OpenAI
+import base64
+import json
+import re
 from io import BytesIO
+from typing import List
+
 import pandas as pd
+import requests
+import streamlit as st
+import streamlit.components.v1 as components
+from openai import OpenAI
 
 # ============================
 # CONFIGURAZIONE PAGINA
@@ -35,6 +40,44 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 # ============================
+# UTILITY PER CLASSI CSS
+# ============================
+
+
+def apply_custom_classes(header_class_map=None, form_class=None):
+    if header_class_map is None:
+        header_class_map = {}
+    script = f"""
+    <script>
+    const doc = window.parent.document;
+    const mappings = {json.dumps(header_class_map)};
+    const headers = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    headers.forEach((h) => {{
+        const text = h.textContent.trim();
+        const className = mappings[text];
+        if (className) {{
+            const block = h.closest('div[data-testid="stVerticalBlock"]');
+            if (block && !block.classList.contains(className)) {{
+                block.classList.add(className);
+            }}
+        }}
+    }});
+    """
+    if form_class:
+        script += f"""
+    const form = doc.querySelector('form[data-testid="stForm"]');
+    if (form) {{
+        const formBlock = form.closest('div[data-testid="stForm"]');
+        if (formBlock && !formBlock.classList.contains('{form_class}')) {{
+            formBlock.classList.add('{form_class}');
+        }}
+    }}
+    """
+    script += "</script>"
+    components.html(script, height=0, scrolling=False)
+
+
+# ============================
 # LOGIN
 # ============================
 if not st.session_state.authenticated:
@@ -57,11 +100,11 @@ if not st.session_state.authenticated:
             color: #1f2a44;
             margin-bottom: 0.4rem;
         }
-        .login-card p {
+        .login-subtext {
             color: #4a5771;
             margin-bottom: 1.5rem;
         }
-        .stButton > button {
+        .login-card .stButton > button {
             width: 100%;
             border-radius: 12px;
             padding: 0.8rem 1.2rem;
@@ -71,7 +114,7 @@ if not st.session_state.authenticated:
             font-weight: 600;
             transition: background 0.2s ease;
         }
-        .stButton > button:hover {
+        .login-card .stButton > button:hover {
             background: #1f46d2;
         }
     </style>
@@ -79,10 +122,9 @@ if not st.session_state.authenticated:
     st.markdown(LOGIN_STYLE, unsafe_allow_html=True)
 
     with st.container():
-        st.markdown("<div class='login-card'>", unsafe_allow_html=True)
-        st.markdown("<h2>Accesso riservato</h2>", unsafe_allow_html=True)
+        st.markdown("## Accesso riservato")
         st.markdown(
-            "<p>Inserisci la password per accedere al planner editoriale Local SEO.</p>",
+            "<p class='login-subtext'>Inserisci la password per accedere al planner editoriale Local SEO.</p>",
             unsafe_allow_html=True
         )
         pwd = st.text_input("Password", type="password")
@@ -93,7 +135,8 @@ if not st.session_state.authenticated:
                 st.rerun()
             else:
                 st.error("Password errata. Riprova.")
-        st.markdown("</div>", unsafe_allow_html=True)
+
+    apply_custom_classes({"Accesso riservato": "login-card"})
     st.stop()
 
 # ============================
@@ -123,7 +166,11 @@ APP_STYLE = """
     color: #49536b;
 }
 
-.info-card, .form-card, .result-card, .download-card, .utility-card {
+.info-card,
+.utility-card,
+.form-card,
+.result-card,
+.download-card {
     background: #ffffff;
     border-radius: 16px;
     padding: 1.6rem 1.9rem;
@@ -131,7 +178,9 @@ APP_STYLE = """
     box-shadow: 0 14px 35px rgba(15, 23, 42, 0.05);
     margin-bottom: 1.5rem;
 }
-.info-card h4 {
+
+.info-card h4,
+.utility-card h4 {
     margin-bottom: 0.8rem;
     font-size: 1.1rem;
     color: #1f2942;
@@ -144,23 +193,21 @@ APP_STYLE = """
 .info-card li {
     margin-bottom: 0.4rem;
 }
-
-.utility-card h4 {
-    margin-bottom: 0.7rem;
-    color: #1f2942;
-}
 .utility-card p {
     color: #53607a;
     margin-bottom: 1rem;
 }
 
-.form-card h3 {
+.form-card h3,
+.result-card h3,
+.download-card h3 {
     margin-bottom: 0.2rem;
     color: #1f2942;
 }
-.form-card p.section-subtitle {
+.section-subtitle {
     color: #5b6885;
     margin-bottom: 1.2rem;
+    font-size: 0.92rem;
 }
 .section-divider {
     border: none;
@@ -177,7 +224,7 @@ APP_STYLE = """
     color: #2b3650;
 }
 
-.stForm > div button {
+.form-card form[data-testid="stForm"] > div button {
     border-radius: 14px !important;
     padding: 0.9rem 1.2rem !important;
     border: none !important;
@@ -187,16 +234,12 @@ APP_STYLE = """
     font-size: 0.98rem !important;
 }
 
-.result-card h3, .download-card h3 {
-    margin-bottom: 1rem;
-    color: #1f2942;
-}
-
-.stDataFrame {
+.result-card .stDataFrame {
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid #dfe4ef;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+    margin-top: 0.8rem;
 }
 
 .download-card .stDownloadButton > button {
@@ -228,9 +271,6 @@ APP_STYLE = """
     background-image: linear-gradient(90deg, #2a5af7, #476eff);
     border-radius: 12px;
 }
-.status-container {
-    margin-bottom: 1.5rem;
-}
 
 @media (max-width: 980px) {
     .block-container {
@@ -255,7 +295,7 @@ except ImportError:
     EXCEL_AVAILABLE = False
 
 # ============================
-# CACHE
+# CACHE RISORSE
 # ============================
 @st.cache_resource
 def get_openai_client():
@@ -264,6 +304,8 @@ def get_openai_client():
 # ============================
 # API helper
 # ============================
+
+
 def fetch_serp(keyword, encoded_credentials, depth=5):
     url = "https://api.dataforseo.com/v3/serp/google/organic/live/advanced"
     headers = {
@@ -299,6 +341,7 @@ def fetch_serp(keyword, encoded_credentials, depth=5):
     organic_results = [r for r in items if r.get("type") == "organic"]
     return organic_results[:depth]
 
+
 def fetch_content_full(url, encoded_credentials):
     api_url = "https://api.dataforseo.com/v3/on_page/content_parsing/live"
     headers = {"Authorization": f"Basic {encoded_credentials}", "Content-Type": "application/json"}
@@ -315,6 +358,8 @@ def fetch_content_full(url, encoded_credentials):
 # ============================
 # CLASSE PLANNER
 # ============================
+
+
 class LocalSEOPlanner:
     def __init__(self, login, password):
         credentials = f"{login}:{password}"
@@ -421,7 +466,7 @@ Rispondi ESCLUSIVAMENTE in formato JSON valido, senza testo aggiuntivo prima o d
         try:
             data = json.loads(content)
             return data.get("posts", [])
-        except:
+        except Exception:
             parts = re.split(r"POST\s*\d+[:\-]", content)
             return [p.strip() for p in parts if p.strip()]
 
@@ -441,44 +486,40 @@ st.markdown(
 
 info_col, utility_col = st.columns([3, 1])
 with info_col:
-    st.markdown(
-        """
-        <div class="info-card">
-            <h4>Come procedere</h4>
+    info_box = st.container()
+    with info_box:
+        st.markdown("#### Come procedere")
+        st.markdown(
+            """
             <ul>
                 <li>Compila i dati dell’attività (settore, sito, tono di voce).</li>
                 <li>Inserisci gli argomenti: uno per riga se ne vuoi più di uno.</li>
                 <li>Scegli se analizzare solo il tuo sito o l’intero web.</li>
                 <li>Scarica il piano generato e adatta le date editoriali.</li>
             </ul>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+            """,
+            unsafe_allow_html=True
+        )
 
 with utility_col:
-    st.markdown(
-        """
-        <div class="utility-card">
-            <h4>Utility</h4>
-            <p>Ripulisci la cache in caso di modifiche a prompt o risorse.</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    if st.button("Svuota cache", key="clear_cache"):
-        st.cache_data.clear()
-        st.cache_resource.clear()
-        st.success("Cache svuotata. Le prossime elaborazioni useranno solo dati aggiornati.")
+    utility_box = st.container()
+    with utility_box:
+        st.markdown("#### Utility")
+        st.markdown("Ripulisci la cache in caso di modifiche a prompt o risorse.")
+        if st.button("Svuota cache", key="clear_cache"):
+            st.cache_data.clear()
+            st.cache_resource.clear()
+            st.success("Cache svuotata. Le prossime elaborazioni useranno solo dati aggiornati.")
 
 # ============================
 # FORM
 # ============================
 with st.form("planner_form"):
-    st.markdown("<div class='form-card'>", unsafe_allow_html=True)
-
-    st.markdown("<h3>1. Dati dell’attività</h3>", unsafe_allow_html=True)
-    st.markdown("<p class='section-subtitle'>Informazioni necessarie per contestualizzare i contenuti.</p>", unsafe_allow_html=True)
+    st.markdown("### 1. Dati dell’attività")
+    st.markdown(
+        "<p class='section-subtitle'>Informazioni necessarie per contestualizzare i contenuti.</p>",
+        unsafe_allow_html=True
+    )
 
     col1, col2 = st.columns(2)
     with col1:
@@ -496,22 +537,32 @@ with st.form("planner_form"):
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
 
-    st.markdown("<h3>2. Argomenti e brief</h3>", unsafe_allow_html=True)
-    st.markdown("<p class='section-subtitle'>Inserisci uno o più argomenti (uno per riga) e note utili.</p>", unsafe_allow_html=True)
+    st.markdown("### 2. Argomenti e brief")
+    st.markdown(
+        "<p class='section-subtitle'>Inserisci uno o più argomenti (uno per riga) e note utili.</p>",
+        unsafe_allow_html=True
+    )
 
-    topic_input = st.text_area("Argomento/i di riferimento", height=130, placeholder="Esempio:\nImpianti fotovoltaici residenziali\nManutenzione straordinaria impianti\nSoluzioni di storage per PMI")
-    brief = st.text_area("Brief / informazioni aggiuntive", height=110, placeholder="Specifiche, promozioni, servizi distintivi, CTA desiderata…")
+    topic_input = st.text_area(
+        "Argomento/i di riferimento",
+        height=130,
+        placeholder="Esempio:\nImpianti fotovoltaici residenziali\nManutenzione straordinaria impianti\nSoluzioni di storage per PMI"
+    )
+    brief = st.text_area(
+        "Brief / informazioni aggiuntive",
+        height=110,
+        placeholder="Specifiche, promozioni, servizi distintivi, CTA desiderata…"
+    )
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
 
-    st.markdown("<h3>3. Strategia di ricerca</h3>", unsafe_allow_html=True)
+    st.markdown("### 3. Strategia di ricerca")
     source_mode = st.radio(
         "Fonte da cui estrarre insight",
         ["Dal sito web (site:)", "Dal web (query generica)"],
         horizontal=True
     )
 
-    st.markdown("</div>", unsafe_allow_html=True)
     submit = st.form_submit_button("Genera piano editoriale")
 
 # ============================
@@ -534,7 +585,7 @@ if submit:
     current_step = 0
 
     with st.status("Elaborazione in corso…", expanded=True) as status_box:
-        progress = st.progress(0)
+        progress = st.progress(0.0)
         for topic in topics:
             status_box.update(label=f"Analisi SERP per: **{topic}**")
             query = f"{topic} site:{website}" if source_mode.startswith("Dal sito") and website else topic
@@ -578,14 +629,11 @@ if submit:
     df = pd.DataFrame(rows)
 
     with st.container():
-        st.markdown("<div class='result-card'>", unsafe_allow_html=True)
-        st.markdown("<h3>Piano editoriale generato</h3>", unsafe_allow_html=True)
+        st.markdown("### Piano editoriale generato")
         st.dataframe(df, use_container_width=True, height=420)
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with st.container():
-        st.markdown("<div class='download-card'>", unsafe_allow_html=True)
-        st.markdown("<h3>Esporta</h3>", unsafe_allow_html=True)
+        st.markdown("### Esporta")
 
         export_cols = st.columns(2)
         if EXCEL_AVAILABLE:
@@ -611,4 +659,16 @@ if submit:
                 file_name="piano_editoriale_local_seo.csv",
                 mime="text/csv"
             )
-        st.markdown("</div>", unsafe_allow_html=True)
+
+# ============================
+# APPLICAZIONE CLASSI CSS
+# ============================
+apply_custom_classes(
+    {
+        "Come procedere": "info-card",
+        "Utility": "utility-card",
+        "Piano editoriale generato": "result-card",
+        "Esporta": "download-card"
+    },
+    form_class="form-card"
+)
